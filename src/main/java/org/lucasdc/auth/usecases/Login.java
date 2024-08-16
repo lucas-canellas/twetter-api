@@ -6,6 +6,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response;
+import org.lucasdc.auth.dto.LoginRequest;
+import org.lucasdc.auth.dto.LoginResponse;
 import org.lucasdc.auth.entities.User;
 import org.lucasdc.auth.repositories.UserRepository;
 
@@ -19,14 +21,14 @@ public class Login {
     UserRepository userRepository;
 
     @Transactional
-    public Response login(User user) {
-        User foundUser = userRepository.findByEmail(user.getEmail());
+    public Response login(LoginRequest loginRequest) {
+        User foundUser = userRepository.findByEmail(loginRequest.getEmail());
 
         if (foundUser == null) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid username or password").build();
         }
 
-        boolean matches = BcryptUtil.matches(user.getPassword(), foundUser.getPassword());
+        boolean matches = BcryptUtil.matches(loginRequest.getPassword(), foundUser.getPassword());
 
         if (!matches) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid username or password").build();
@@ -37,7 +39,10 @@ public class Login {
                 .groups(new HashSet<>(Collections.singletonList(foundUser.getRole())))
                 .sign();
 
-        return Response.ok().entity(token).build();
+        var response = new LoginResponse();
+        response.setToken(token);
+
+        return Response.ok().entity(response).build();
     }
 
 }
